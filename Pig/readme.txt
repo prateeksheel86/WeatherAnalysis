@@ -7,4 +7,5 @@ Then, the rows are transformed to yeild the following final result and stored in
 City, State, Population in 2000, Population in 2010, Numeric Change, Percentage Change
 Input file location: /user/cloudera/LZ/Population/CPH-T-5.csv
 Output file directory: /user/cloudera/STG/Population/
-Command to execute: pig -f clean-population-data.pig --param timestamp=$(date +%s)
+Command to execute: pig -f clean-population-data.pig
+Optional: If the timestamp paramters is uncommented in script, use the following to pass from UNIX: --param timestamp=$(date +%s)
