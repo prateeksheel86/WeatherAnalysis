@@ -28,6 +28,10 @@ city STRING COMMENT 'City',
 estimated_population INT COMMENT 'Projected population in May, 2015') 
 COMMENT 'Projected population table containing the estimated data for each MSA (Metropolitan State Area) in May, 2015'
 PARTITIONED BY (state STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
 TBLPROPERTIES ('creator'='Prateek Sheel', 'created'='2017-04-14');
 
 4. Insert data into the projected population table
@@ -35,7 +39,7 @@ TBLPROPERTIES ('creator'='Prateek Sheel', 'created'='2017-04-14');
 set hive.exec.dynamic.partition=true;
 set hive.exec.dynamic.partition.mode=nonstrict; 
 set hive.exec.max.dynamic.partitions.pernode=1000;
-INSERT OVERWRITE TABLE projected_population
+INSERT OVERWRITE TABLE sample.projected_population
 PARTITION(state)
-SELECT city, popApr2010 + floor(numChange*(61/120)), state
-FROM population;
+SELECT UPPER(city), popApr2010 + floor(numChange*(61/120)), state
+FROM sample.population;

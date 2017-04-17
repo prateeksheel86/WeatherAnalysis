@@ -43,13 +43,37 @@ object WeatherAnalysis {
 
     // Create Data Frame with the precipitation for each county and province
     val weatherDF = hiveContext.sql("select county, state_province, hourlyprecip from sample.weather_data")
-    val numeric = weatherDF.withColumn("hourlyprecip", $"hourlyprecip".cast("double")).na.drop(Seq("hourlyprecip"))
-    //val mapData = numeric.flatMap(record => )
-    //val mapData = numeric.map(record => Row(Seq(record).take(2).toList.mkString("_") , record(2)))
-    //mapData.collect().foreach(println)
+
+    // Filter out records where county or province is empty
+    val filtered = weatherDF.filter("county != ''").filter("state_province != ''")
+
+    // Filter out records where precipitation is non numeric
+    val numeric = filtered.withColumn("hourlyprecip", $"hourlyprecip".cast("double")).na.drop(Seq("hourlyprecip"))
+
+    // Group records by county and province and calculate the sum of precipitation
     val grouped = numeric.groupBy($"county", $"state_province").agg(sum("hourlyprecip"))
-    //val grouped = numeric.groupBy($"county", $"state_province").agg($"county", $"state_province", sum("hourlyprecip"))
-    grouped.show()
+
+    // Rename the aggregate column to totalPrecipitation
+    val groupedRenamed = grouped.withColumn("totalPrecipitation", $"sum(hourlyprecip)")
+
+    // Create Data Frame with the population data
+    val population = hiveContext.sql("select city, state, estimated_population from sample.projected_population")
+
+    // Join the data using city and state
+    val joinData = population.join(groupedRenamed, population("state") === groupedRenamed("state_province")
+      && population("city") === groupedRenamed("county"), "inner")
+
+    // Calculate the product of population and precipitation
+    val wetPopulation = joinData.withColumn("wetPopulation", $"totalPrecipitation" * $"estimated_population")
+
+    // Rename column to meaningful name
+    val finalData = wetPopulation.drop($"county").drop($"state_province").drop($"sum(hourlyprecip)")
+
+    // Sort data on population wetness
+    val sortedData = finalData.sort($"wetPopulation".desc)
+
+    // Display the results
+    sortedData.write.saveAsTable("sample.msaPopulationWetness")
     sc.stop()
   }
 }
